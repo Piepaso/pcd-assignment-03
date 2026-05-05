@@ -1,48 +1,52 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"math/rand"
+)
 
-func tournament(title string, playersNum int, registerChan <-chan PlayerTicket, matches chan<- Match, done chan<- bool) {
+func tournament(title string, playersNum int, tournamentChan <-chan PlayerTicket, refereeChannels []chan Match, done chan<- bool) {
 
 	fmt.Printf("=== Registration is now open for the tournament %s ===\n", title)
 
-	var activePlayers []PlayerTicket
+	var players []PlayerTicket
 	for i := 0; i < playersNum; i++ {
-		activePlayers = append(activePlayers, <-registerChan)
+		players = append(players, <-tournamentChan)
 	}
 
 	fmt.Printf("=== Registration closed	===\n")
-	fmt.Printf("=== Welcome to the %s tournament ===\n", title)
+
+	rand.Shuffle(len(players), func(i, j int) {
+		players[i], players[j] = players[j], players[i]
+	})
 
 	round := 1
 
-	for len(activePlayers) > 1 {
-		fmt.Printf("\n--- Round %d start, (%d players) ---\n", round, len(activePlayers))
+	fmt.Printf("=== Welcome to the %s tournament ===\n", title)
+
+	for len(players) > 1 {
+		fmt.Printf("\n--- Round %d start, (%d players) ---\n", round, len(players))
 		resultsChannel := make(chan PlayerTicket)
 
-		for i := 0; i < len(activePlayers); i += 2 {
-			p1 := activePlayers[i]
-			p2 := activePlayers[i+1]
+		for i := 0; i < len(players); i += 2 {
+			player1 := players[i]
+			player2 := players[i+1]
 
-			go func(player1, player2 PlayerTicket) {
-				matches <- Match{
-					P1:         player1,
-					P2:         player2,
-					ResChannel: resultsChannel,
-				}
-			}(p1, p2)
+			go func() {
+				refereeChannels[i/2] <- createMatch(player1, player2, resultsChannel)
+			}()
 		}
 
 		var nextRoundPlayers []PlayerTicket
-		for i := 0; i < len(activePlayers)/2; i++ {
+		for i := 0; i < len(players)/2; i++ {
 			roundWinner := <-resultsChannel
 			nextRoundPlayers = append(nextRoundPlayers, roundWinner)
 		}
 
-		activePlayers = nextRoundPlayers
+		players = nextRoundPlayers
 		round++
 	}
 
-	fmt.Printf("\n🏆 The %s winner is... Player %d! 🏆\n", title, activePlayers[0].ID)
+	fmt.Printf("\n🏆 The %s winner is... Player %d! 🏆\n", title, players[0].id)
 	done <- true
 }

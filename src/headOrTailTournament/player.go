@@ -8,27 +8,27 @@ import (
 type Strategy func() CoinSide
 
 func headStrategy() CoinSide {
-	time.Sleep(2000 * time.Millisecond) // Think time
+	time.Sleep(1000 * time.Millisecond) // Think time
 	return Head
 }
 
 func randomStrategy() CoinSide {
-	time.Sleep(2000 * time.Millisecond) // Think time
+	time.Sleep(1000 * time.Millisecond) // Think time
 	return CoinSide(rand.Intn(2) == 1)
 }
 
-func player(id int, strategy Strategy, registerChan chan<- PlayerTicket) {
-	ticket := createPlayerTicket(id)
+func player(id int, strategy Strategy, tournamentChan chan<- PlayerTicket) {
+	time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
 
-	time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond) // Registration time
-	registerChan <- ticket
+	ticket := createPlayerTicket(id)
+	tournamentChan <- ticket
 
 	for {
 		select {
-		case replyChan := <-ticket.AskChoiceChan:
+		case replyChan := <-ticket.askChoiceChan:
 			replyChan <- strategy()
 
-		case won := <-ticket.ResultChan:
+		case won := <-ticket.resultChan:
 			if !won {
 				return
 			}

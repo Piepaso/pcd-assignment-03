@@ -1,21 +1,29 @@
 package main
 
 type PlayerTicket struct {
-	ID            int
-	AskChoiceChan chan chan CoinSide
-	ResultChan    chan bool
+	id            int
+	askChoiceChan chan chan CoinSide
+	resultChan    chan bool
+}
+
+type Match struct {
+	player1    PlayerTicket
+	player2    PlayerTicket
+	ResChannel chan<- PlayerTicket
 }
 
 func createPlayerTicket(id int) PlayerTicket {
 	return PlayerTicket{
-		ID:            id,
-		AskChoiceChan: make(chan chan CoinSide),
-		ResultChan:    make(chan bool),
+		id:            id,
+		askChoiceChan: make(chan chan CoinSide),
+		resultChan:    make(chan bool),
 	}
 }
 
-type Match struct {
-	P1         PlayerTicket
-	P2         PlayerTicket
-	ResChannel chan PlayerTicket
+func createMatch(p1, p2 PlayerTicket, resChan chan<- PlayerTicket) Match {
+	return Match{
+		player1:    p1,
+		player2:    p2,
+		ResChannel: resChan,
+	}
 }

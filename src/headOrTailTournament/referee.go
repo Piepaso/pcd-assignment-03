@@ -7,35 +7,39 @@ import (
 )
 
 func tossACoin() CoinSide {
-	time.Sleep(2000 * time.Millisecond) // Flip time
+	time.Sleep(1000 * time.Millisecond) // Flip time
 	return CoinSide(rand.Intn(2) == 1)
 }
 
-func referee(id int, matches <-chan Match) {
-	for match := range matches {
-		replyChan := make(chan CoinSide)
-		match.P1.AskChoiceChan <- replyChan
+func referee(id int, channel <-chan Match) {
+	var p2Assigned CoinSide
+	var winner, loser PlayerTicket
+	replyChan := make(chan CoinSide)
+
+	for {
+		match := <-channel
+		match.player1.askChoiceChan <- replyChan
 		p1Choice := <-replyChan
 
-		p2Assigned := Tail
 		if p1Choice == Tail {
 			p2Assigned = Head
+		} else {
+			p2Assigned = Tail
 		}
 
 		toss := tossACoin()
 
-		fmt.Printf("[Referee %d] P%d plays %s, P%d plays %s. Flip: %s -> ", id, match.P1.ID, p1Choice, match.P2.ID, p2Assigned, toss)
-
-		var winner, loser PlayerTicket
 		if toss == p1Choice {
-			winner, loser = match.P1, match.P2
+			winner, loser = match.player1, match.player2
 		} else {
-			winner, loser = match.P2, match.P1
+			winner, loser = match.player2, match.player1
 		}
 
-		fmt.Printf("P%d wins!\n", winner.ID)
-		loser.ResultChan <- false
-		winner.ResultChan <- true
+		fmt.Printf("[Referee %d] P%d plays %s, P%d plays %s. Flip: %s -> P%d wins!\n",
+			id, match.player1.id, p1Choice, match.player2.id, p2Assigned, toss, winner.id)
+
+		loser.resultChan <- false
+		winner.resultChan <- true
 
 		match.ResChannel <- winner
 	}
