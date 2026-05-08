@@ -2,6 +2,7 @@ package main
 
 import (
 	"math/rand"
+	"time"
 )
 
 type Strategy struct {
@@ -30,3 +31,16 @@ func evenStrategy() Strategy {
 		},
 	}
 }
+
+func slowStrategy()  Strategy {
+	return Strategy{
+		chooseReminder: func() int {
+			time.Sleep(1000 * time.Millisecond)
+			return 0
+		},
+		throwNumber: func(reminder int) int {
+			time.Sleep(1000 * time.Millisecond)	
+			return reminder
+		},
+	}
+} 

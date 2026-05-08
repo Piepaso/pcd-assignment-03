@@ -3,7 +3,7 @@ package main
 import "math/rand"
 
 func main() {
-	n_players := 8
+	n_players := 1024
 
 	tournamentChan := make(chan PlayerTicket)
 	done := make(chan bool)
@@ -13,7 +13,7 @@ func main() {
 	for i := 0; i < n_players; i++ {
 		var strat Strategy
 		if rand.Intn(2) == 0 {
-			strat = randomStrategy()
+			strat = slowStrategy()
 		} else {
 			strat = evenStrategy()
 		}
