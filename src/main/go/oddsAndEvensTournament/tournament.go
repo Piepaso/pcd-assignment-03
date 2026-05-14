@@ -62,6 +62,6 @@ func tournament(title string, playersNum int, tournamentChan <-chan PlayerTicket
 		round++
 	}
 
-	fmt.Printf("\n🏆 The %s winner is... Player %d! 🏆\n", title, players[0].id)
+	fmt.Printf("\n🏆 The %s winner is... Player %d! 🏆\n", title, inGamePlayers[0])
 	done <- true
 }
