@@ -14,7 +14,7 @@ object AlarmProtocol:
   case class SelectZones(zones: Set[Zone]) extends Command
   case class SensorTriggered(zone: Zone) extends Command
 
-  enum Timeout(val key: String, val command: Command):
+  enum Timeout extends Command:
     case Exit
     case Entry
     case ZoneSelection
