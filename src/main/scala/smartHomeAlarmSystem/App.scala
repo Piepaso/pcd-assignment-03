@@ -31,17 +31,20 @@ object App:
     val _ = context.spawn(Sensor("motion", Perimeter, controller), "motion-sensor")
     val _ = context.spawn(Sensor("smoke", Kitchen, controller), "smoke-sensor")
     val bedroom = context.spawn(Sensor("bedroom-window", Bedroom, controller), "bedroom-window-sensor")
-
-    simulatePhysicalEvent(Keypad.TypeDigit('1'), keypad, 5.seconds)
-    simulatePhysicalEvent(Keypad.TypeDigit('2'), keypad, 6.seconds)
-    simulatePhysicalEvent(Keypad.TypeDigit('3'), keypad, 7.seconds)
-    simulatePhysicalEvent(Keypad.Enter, keypad, 8.seconds)
-    simulatePhysicalEvent(Sensor.Trigger, door, 10.seconds)
-    simulatePhysicalEvent(Sensor.Trigger, bedroom, 15.seconds)
-    simulatePhysicalEvent(Keypad.TypeDigit('1'), keypad, 16.seconds)
-    simulatePhysicalEvent(Keypad.TypeDigit('2'), keypad, 17.seconds)
-    simulatePhysicalEvent(Keypad.TypeDigit('3'), keypad, 18.seconds)
-    simulatePhysicalEvent(Keypad.Enter, keypad, 19.seconds)
+    val simulationEvents = List(
+      (Keypad.TypeDigit('1'), keypad, 5.seconds),
+      (Keypad.TypeDigit('2'), keypad, 6.seconds),
+      (Keypad.TypeDigit('3'), keypad, 7.seconds),
+      (Keypad.Enter, keypad, 8.seconds),
+      (Sensor.Trigger, door, 10.seconds),
+      (Sensor.Trigger, bedroom, 15.seconds),
+      (Keypad.TypeDigit('1'), keypad, 16.seconds),
+      (Keypad.TypeDigit('2'), keypad, 17.seconds),
+      (Keypad.TypeDigit('3'), keypad, 18.seconds),
+      (Keypad.Enter, keypad, 19.seconds)
+    )
+    simulationEvents.foreach(t => simulatePhysicalEvent(t._1, t._2, t._3))
+    
     Behaviors.empty
 
   @main def run(): Unit =
