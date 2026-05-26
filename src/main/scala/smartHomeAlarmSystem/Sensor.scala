@@ -12,7 +12,7 @@ object Sensor:
 
   export Event.*
 
-  def apply(id: String, zone: Zone, controller: ActorRef[Command], on: Boolean = false): Behavior[Event] =
+  def apply(id: String, zone: Zone, controller: ActorRef[Command], on: Boolean = true): Behavior[Event] =
     Behaviors.receiveMessage:
       case Trigger if on =>
         controller ! SensorTriggered(zone)
