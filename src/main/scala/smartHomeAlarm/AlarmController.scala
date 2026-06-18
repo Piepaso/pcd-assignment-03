@@ -1,4 +1,4 @@
-package smartHomeAlarmSystem
+package smartHomeAlarm
 
 import org.apache.pekko.actor.typed.Behavior
 import org.apache.pekko.actor.typed.scaladsl.*
@@ -18,45 +18,41 @@ object AlarmController:
 
   private def createState(ctx: ActorContext[Command], behavior: Behavior[Command]): Behavior[Command] =
     Behaviors.receiveMessage:
-      case PinEntered(pin) if pin != correctPin =>
-        ctx.log.warn("Invalid PIN entered.")
+      case PinEntered(pin, replyTo) if pin != correctPin =>
+        replyTo ! Reply("Invalid PIN entered.")
         Behaviors.same
       case msg => Behavior.interpretMessage(behavior, ctx, msg)
 
   private def disarmed(zonesToArm: Set[Zone], timers: TimerScheduler[Command], ctx: ActorContext[Command]): Behavior[Command] =
-    createState(ctx, Behaviors.receiveMessage:
-      case PinEntered(_) =>
-        ctx.log.info("Correct PIN entered. Starting exit delay...")
+    createState(ctx, Behaviors.receiveMessagePartial:
+      case PinEntered(_, replyTo) =>
+        replyTo ! Reply("Starting exit delay...")
         timers.startSingleTimer(ExitTimeout, ExitTimeout, exitDelayDuration)
         exitDelay(zonesToArm, timers, ctx)
 
-      case SelectZones(zones) =>
-        ctx.log.info(s"Selected zones updated for next arming: ${zones.mkString(", ")}")
+      case SelectZones(zones, replyTo) =>
+        replyTo ! Reply(s"Selected zones updated for next arming: ${zones.mkString(", ")}")
         disarmed(zones, timers, ctx)
-
-      case _ => Behaviors.same
     )
 
   private def exitDelay(zonesToArm: Set[Zone], timers: TimerScheduler[Command], ctx: ActorContext[Command]): Behavior[Command] =
-    createState(ctx, Behaviors.receiveMessage:
+    createState(ctx, Behaviors.receiveMessagePartial:
       case ExitTimeout =>
         ctx.log.info(s"Exit delay timed out. System ARMED for zones: ${zonesToArm.mkString(", ")}")
         armed(zonesToArm, timers, ctx)
 
-      case PinEntered(_) =>
-        ctx.log.info("Correct PIN entered. Exit delay cancelled. System remains disarmed.")
+      case PinEntered(_, replyTo) =>
+        replyTo ! Reply("Exit delay cancelled. System remains disarmed.")
         timers.cancel(ExitTimeout)
         disarmed(zonesToArm, timers, ctx)
 
       case SensorTriggered(zone) =>
         ctx.log.info(s"Sensor triggered in zone [$zone] during exit delay. Event ignored.")
         Behaviors.same
-
-      case _ => Behaviors.same
     )
 
   private def armed(zonesToArm: Set[Zone], timers: TimerScheduler[Command], ctx: ActorContext[Command]): Behavior[Command] =
-    createState(ctx, Behaviors.receiveMessage:
+    createState(ctx, Behaviors.receiveMessagePartial:
       case SensorTriggered(zone) if zonesToArm.contains(zone) =>
         ctx.log.warn(s"INTRUSION DETECTED in active zone [$zone]! Starting entry delay...")
         timers.startSingleTimer(EntryTimeout, EntryTimeout, entryDelayDuration)
@@ -66,17 +62,15 @@ object AlarmController:
         ctx.log.info(s"Sensor triggered in inactive zone [$zone]. Event ignored.")
         Behaviors.same
 
-      case PinEntered(_) =>
-        ctx.log.info("Correct PIN entered. System disarmed successfully.")
+      case PinEntered(_, replyTo) =>
+        replyTo ! Reply("System disarmed successfully.")
         disarmed(zonesToArm, timers, ctx)
-
-      case _ => Behaviors.same
     )
 
   private def entryDelay(zonesToArm: Set[Zone], timers: TimerScheduler[Command], ctx: ActorContext[Command]): Behavior[Command] =
-    createState(ctx, Behaviors.receiveMessage:
-      case PinEntered(_) =>
-        ctx.log.info("Correct PIN entered. Alarm deactivated during entry delay.")
+    createState(ctx, Behaviors.receiveMessagePartial:
+      case PinEntered(_, replyTo) =>
+        replyTo ! Reply("Alarm deactivated during entry delay.")
         timers.cancel(EntryTimeout)
         disarmed(zonesToArm, timers, ctx)
 
@@ -87,16 +81,12 @@ object AlarmController:
       case SensorTriggered(zone) =>
         ctx.log.info(s"Sensor triggered in zone [$zone] during entry delay. Countdown already running.")
         Behaviors.same
-
-      case _ => Behaviors.same
     )
 
   private def alarmActive(zonesToArm: Set[Zone], timers: TimerScheduler[Command], ctx: ActorContext[Command]): Behavior[Command] =
     ctx.log.error("ALARM! Digit the correct PIN to disarm.")
-    createState(ctx, Behaviors.receiveMessage:
-      case PinEntered(_) =>
-        ctx.log.info("Correct PIN entered. Alarm stopped. System disarmed.")
+    createState(ctx, Behaviors.receiveMessagePartial:
+      case PinEntered(_, replyTo) =>
+        replyTo ! Reply("Alarm deactivated.")
         disarmed(zonesToArm, timers, ctx)
-        
-      case _ => Behaviors.same
     )
