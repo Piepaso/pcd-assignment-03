@@ -1,5 +1,7 @@
 package smartHomeAlarmSystem
 
+import org.apache.pekko.actor.typed.ActorRef
+
 object AlarmProtocol:
 
   enum Zone:
@@ -9,13 +11,14 @@ object AlarmProtocol:
     case Perimeter
     
   trait Command
-  trait PhysicalEvent
   
   enum Message extends Command:
-    case PinEntered(pin: String)
-    case SelectZones(zones: Set[Zone])
-    case SensorTriggered(zone: Zone)
+    case PinEntered(pin: String, replyTo: ActorRef[DisplayMessage])
+    case SelectZones(zones: Set[Zone], replyTo: ActorRef[DisplayMessage])
+    case SensorTriggered(id: String)
 
+  case class DisplayMessage(msg: String)
+  
   enum Timeout extends Command:
     case ExitTimeout
     case EntryTimeout

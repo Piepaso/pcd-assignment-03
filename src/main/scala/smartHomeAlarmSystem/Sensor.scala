@@ -8,14 +8,23 @@ object Sensor:
   
   enum Event:
     case Trigger
-    case Toggle
+    case SwitchOn(replyTo: ActorRef[Message])
+    case SwitchOff
 
   export Event.*
 
-  def apply(id: String, zone: Zone, controller: ActorRef[Command], on: Boolean = true): Behavior[Event] =
-    Behaviors.receiveMessage:
-      case Trigger if on =>
-        controller ! SensorTriggered(zone)
-        Behaviors.same
-      case Toggle => apply(id, zone, controller, !on)
-      case _ => Behaviors.same
+  def apply(id: String): Behavior[Event] = off(id)
+
+  private def off(id: String): Behavior[Event] = Behaviors.receiveMessagePartial:
+    case SwitchOn(replyTo) =>
+      println(s"[Sensor $id] is now ON.")
+      on(id, replyTo)
+
+  private def on(id: String, replyTo: ActorRef[Message]): Behavior[Event] = Behaviors.receiveMessagePartial:
+    case Trigger =>
+      println(s"[Sensor $id] triggered")
+      replyTo ! SensorTriggered(id)
+      Behaviors.same
+    case SwitchOff =>
+        println(s"[Sensor $id] is now OFF.")
+        off(id)

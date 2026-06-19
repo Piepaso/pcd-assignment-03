@@ -25,21 +25,25 @@ object App:
           Random().nextInt().toString
         )
 
-    val controller = context.spawn(AlarmController(), "alarm-controller")
+    val motion1 = context.spawn(Sensor("motion1"), "motion1")
+    val motion2 = context.spawn(Sensor("motion2"), "motion2")
+    val window1 = context.spawn(Sensor("window1"), "window1")
+    val alarmController = AlarmController("123", Map(
+        "motion1" -> (Perimeter, motion1),
+        "motion2" -> (LivingRoom, motion2),
+        "window1" -> (Bedroom, window1)
+    ))
+    val controller = context.spawn(alarmController(), "alarm-controller")
     val keypad = context.spawn(Keypad(controller), "keypad")
-    val door = context.spawn(Sensor("door", LivingRoom, controller), "door-sensor")
-    val _ = context.spawn(Sensor("window", LivingRoom, controller), "window-sensor")
-    val _ = context.spawn(Sensor("motion", Perimeter, controller), "motion-sensor")
-    val _ = context.spawn(Sensor("smoke", Kitchen, controller), "smoke-sensor")
-    val bedroom = context.spawn(Sensor("bedroom-window", Bedroom, controller), "bedroom-window-sensor")
+
 
     List(
       Event(1.seconds, keypad, Keypad.TypeDigit('1')),
       Event(2.seconds, keypad, Keypad.TypeDigit('2')),
       Event(3.seconds, keypad, Keypad.TypeDigit('3')),
       Event(4.seconds, keypad, Keypad.Enter),
-      Event(6.seconds, door, Sensor.Trigger),
-      Event(10.seconds, bedroom, Sensor.Trigger),
+      Event(6.seconds, motion2, Sensor.Trigger),
+      Event(10.seconds, window1, Sensor.Trigger),
       Event(11.seconds, keypad, Keypad.TypeDigit('1')),
       Event(12.seconds, keypad, Keypad.TypeDigit('2')),
       Event(13.seconds, keypad, Keypad.TypeDigit('3')),
@@ -51,8 +55,10 @@ object App:
       Event(18.seconds, keypad, Keypad.TypeDigit('2')),
       Event(19.seconds, keypad, Keypad.TypeDigit('3')),
       Event(20.seconds, keypad, Keypad.Enter),
-      Event(26.seconds, bedroom, Sensor.Trigger),
-      Event(27.seconds, door, Sensor.Trigger),
+      Event(22.seconds, keypad, Keypad.TypeDigit('1')),
+      Event(23.seconds, keypad, Keypad.Enter),
+      Event(26.seconds, window1, Sensor.Trigger),
+      Event(27.seconds, motion2, Sensor.Trigger),
       Event(32.seconds, keypad, Keypad.TypeDigit('1')),
       Event(33.seconds, keypad, Keypad.TypeDigit('2')),
       Event(34.seconds, keypad, Keypad.TypeDigit('3')),
@@ -62,5 +68,6 @@ object App:
     Behaviors.empty
 
   @main def run(): Unit =
+
     println("Starting Smart Home Alarm system ...")
     val _ = ActorSystem(App(), "SmartHomeSystem")
